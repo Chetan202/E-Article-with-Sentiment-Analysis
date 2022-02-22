@@ -1,0 +1,64 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+/* eslint-disable max-len */
+/* eslint-disable complexity */
+/*!
+ * Copyright (c) 2015-present, Okta, Inc. and/or its affiliates. All rights reserved.
+ * The Okta software accompanied by this notice is provided pursuant to the Apache License, Version 2.0 (the "License.")
+ *
+ * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *
+ * See the License for the specific language governing permissions and limitations under the License.
+ *
+ */
+import { getWellKnown, getKey } from './endpoints/well-known';
+import { validateClaims } from './util';
+import { AuthSdkError } from '../errors';
+import { decodeToken } from './decodeToken';
+import * as sdkCrypto from '../crypto';
+// Verify the id token
+export function verifyToken(sdk, token, validationParams) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!token || !token.idToken) {
+            throw new AuthSdkError('Only idTokens may be verified');
+        }
+        // Decode the Jwt object (may throw)
+        var jwt = decodeToken(token.idToken);
+        var openIdConfig = yield getWellKnown(sdk); // using sdk.options.issuer
+        var validationOptions = {
+            issuer: openIdConfig.issuer,
+            clientId: sdk.options.clientId,
+            ignoreSignature: sdk.options.ignoreSignature
+        };
+        Object.assign(validationOptions, validationParams);
+        // Standard claim validation (may throw)
+        validateClaims(sdk, jwt.payload, validationOptions);
+        // If the browser doesn't support native crypto or we choose not
+        // to verify the signature, bail early
+        if (validationOptions.ignoreSignature == true || !sdk.features.isTokenVerifySupported()) {
+            return token;
+        }
+        const key = yield getKey(sdk, token.issuer, jwt.header.kid);
+        const valid = yield sdkCrypto.verifyToken(token.idToken, key);
+        if (!valid) {
+            throw new AuthSdkError('The token signature is not valid');
+        }
+        if (validationParams && validationParams.accessToken && token.claims.at_hash) {
+            const hash = yield sdkCrypto.getOidcHash(validationParams.accessToken);
+            if (hash !== token.claims.at_hash) {
+                throw new AuthSdkError('Token hash verification failed');
+            }
+        }
+        return token;
+    });
+}

@@ -1,0 +1,70 @@
+import { AuthSdkError } from '../../errors';
+import { removeNils, toQueryString } from '../../util';
+import http from '../../http';
+function validateOptions(options) {
+    // Quick validation
+    if (!options.clientId) {
+        throw new AuthSdkError('A clientId must be specified in the OktaAuth constructor to get a token');
+    }
+    if (!options.redirectUri) {
+        throw new AuthSdkError('The redirectUri passed to /authorize must also be passed to /token');
+    }
+    if (!options.authorizationCode && !options.interactionCode) {
+        throw new AuthSdkError('An authorization code (returned from /authorize) must be passed to /token');
+    }
+    if (!options.codeVerifier) {
+        throw new AuthSdkError('The "codeVerifier" (generated and saved by your app) must be passed to /token');
+    }
+}
+function getPostData(sdk, options) {
+    // Convert Token params to OAuth params, sent to the /token endpoint
+    var params = removeNils({
+        'client_id': options.clientId,
+        'redirect_uri': options.redirectUri,
+        'grant_type': options.interactionCode ? 'interaction_code' : 'authorization_code',
+        'code_verifier': options.codeVerifier
+    });
+    if (options.interactionCode) {
+        params['interaction_code'] = options.interactionCode;
+    }
+    else if (options.authorizationCode) {
+        params.code = options.authorizationCode;
+    }
+    const { clientSecret } = sdk.options;
+    if (clientSecret) {
+        params['client_secret'] = clientSecret;
+    }
+    // Encode as URL string
+    return toQueryString(params).slice(1);
+}
+// exchange authorization code for an access token
+export function postToTokenEndpoint(sdk, options, urls) {
+    validateOptions(options);
+    var data = getPostData(sdk, options);
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    return http.httpRequest(sdk, {
+        url: urls.tokenUrl,
+        method: 'POST',
+        args: data,
+        headers
+    });
+}
+export function postRefreshToken(sdk, options, refreshToken) {
+    return http.httpRequest(sdk, {
+        url: refreshToken.tokenUrl,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        args: Object.entries({
+            client_id: options.clientId,
+            grant_type: 'refresh_token',
+            scope: refreshToken.scopes.join(' '),
+            refresh_token: refreshToken.refreshToken, // eslint-disable-line camelcase
+        }).map(function ([name, value]) {
+            return name + '=' + encodeURIComponent(value);
+        }).join('&'),
+    });
+}

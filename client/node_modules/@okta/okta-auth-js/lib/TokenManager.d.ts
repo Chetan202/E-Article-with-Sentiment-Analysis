@@ -1,0 +1,57 @@
+import { Token, Tokens, TokenType, TokenManagerOptions, OktaAuth } from './types';
+export declare const EVENT_EXPIRED = "expired";
+export declare const EVENT_RENEWED = "renewed";
+export declare const EVENT_ADDED = "added";
+export declare const EVENT_REMOVED = "removed";
+export declare const EVENT_ERROR = "error";
+interface TokenError {
+    errorSummary: string;
+    errorCode: string;
+    message: string;
+    name: string;
+    tokenKey: string;
+}
+declare type TokenErrorEventHandler = (error: TokenError) => void;
+declare type TokenEventHandler = (key: string, token: Token, oldtoken?: Token) => void;
+export declare class TokenManager {
+    private sdk;
+    private clock;
+    private emitter;
+    private storage;
+    private state;
+    private options;
+    private service;
+    on: (event: string, handler: TokenErrorEventHandler | TokenEventHandler, context?: object) => void;
+    off: (event: string, handler?: TokenErrorEventHandler | TokenEventHandler) => void;
+    constructor(sdk: OktaAuth, options?: TokenManagerOptions);
+    start(): void;
+    stop(): void;
+    getOptions(): TokenManagerOptions;
+    getExpireTime(token: any): number;
+    hasExpired(token: any): boolean;
+    emitExpired(key: any, token: any): void;
+    emitRenewed(key: any, freshToken: any, oldToken: any): void;
+    emitAdded(key: any, token: any): void;
+    emitRemoved(key: any, token?: any): void;
+    emitError(error: any): void;
+    emitEventsForCrossTabsStorageUpdate(newValue: any, oldValue: any): void;
+    clearExpireEventTimeout(key: any): void;
+    clearExpireEventTimeoutAll(): void;
+    setExpireEventTimeout(key: any, token: any): void;
+    setExpireEventTimeoutAll(): void;
+    resetExpireEventTimeoutAll(): void;
+    validateToken(token: Token): void;
+    add(key: any, token: Token): void;
+    getSync(key: any): any;
+    get(key: any): Promise<any>;
+    getTokensSync(): Tokens;
+    getTokens(): Promise<Tokens>;
+    getStorageKeyByType(type: TokenType): string;
+    setTokens({ accessToken, idToken, refreshToken }: Tokens, accessTokenCb?: Function, idTokenCb?: Function, refreshTokenCb?: Function): void;
+    remove(key: any): void;
+    renewToken(token: any): Promise<any>;
+    renew(key: any): Promise<Token>;
+    clear(): void;
+    getTokensFromStorageValue(value: any): any;
+}
+export {};
