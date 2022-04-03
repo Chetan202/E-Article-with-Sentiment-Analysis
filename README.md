@@ -3,4 +3,5 @@ The purpose of the online E-Article system is to automate the existing manual sy
 
 ![1](https://user-images.githubusercontent.com/51255866/155087965-b10b8320-c5ef-4416-ae39-aecc1d811aae.png)
 ![2](https://user-images.githubusercontent.com/51255866/155087975-ed5eb3e1-a838-4775-848e-8259089a5e16.png)
+![2](https://user-images.githubusercontent.com/51255866/161423798-a4458dbc-edef-4c15-851f-b8331c5e5c49.png)
 ![3](https://user-images.githubusercontent.com/51255866/155087988-ff03f410-ecec-443b-a18a-10507c5122da.png)
